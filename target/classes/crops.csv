@@ -1,0 +1,38 @@
+# Crop threshold rules. One line = one "if" from legacy SVFRMS.processSensor (lines 141-205).
+# crop,sensor,bound,limit,label,device,waterCost,energyCost
+#   crop   : crop name, or * for a facility-wide rule that applies to every crop
+#   bound  : ABOVE (value > limit) or BELOW (value < limit)
+#   device : device to request when breached; leave empty for alert-only
+# Order matters within a crop+sensor: rules are checked top to bottom (legacy checks High before Low).
+
+Tomato,TEMPERATURE,ABOVE,28,High Temp,Cooling Fan,0,10
+Tomato,TEMPERATURE,BELOW,22,Low Temp,,0,15
+Tomato,HUMIDITY,ABOVE,80,High Humidity,Dehumidifier,0,0
+Tomato,HUMIDITY,BELOW,60,Low Humidity,Humidifier,20,0
+Tomato,SOIL_MOISTURE,BELOW,45,Low Soil Moisture,Water Pump,50,0
+
+Strawberry,TEMPERATURE,ABOVE,24,High Temp,Cooling Fan,0,10
+Strawberry,TEMPERATURE,BELOW,18,Low Temp,,0,15
+Strawberry,HUMIDITY,ABOVE,85,High Humidity,Dehumidifier,0,0
+Strawberry,HUMIDITY,BELOW,70,Low Humidity,Humidifier,25,0
+
+Lettuce,TEMPERATURE,ABOVE,21,High Temp,Cooling Fan,0,0
+Lettuce,TEMPERATURE,BELOW,15,Low Temp,,0,0
+
+Spinach,TEMPERATURE,ABOVE,20,High Temp,Cooling Fan,0,0
+Spinach,TEMPERATURE,BELOW,10,Low Temp,,0,0
+
+Chili,TEMPERATURE,ABOVE,32,High Temp,Cooling Fan,0,0
+Chili,TEMPERATURE,BELOW,24,Low Temp,,0,0
+
+Cucumber,TEMPERATURE,ABOVE,27,High Temp,Cooling Fan,0,0
+Cucumber,TEMPERATURE,BELOW,18,Low Temp,,0,0
+
+# Facility-wide rules (legacy: not crop-specific, alert text has no crop name)
+*,LIGHT,BELOW,500,Low Light Level,Grow Light,0,0
+*,NUTRIENT,BELOW,40,Low Nutrient Level,Nutrient Injector,0,0
+
+# New crop example for the demo: uncomment, then assign it a chamber in chambers.csv.
+# No Java code changes are needed.
+# Kale,TEMPERATURE,ABOVE,24,High Temp,Cooling Fan,0,0
+# Kale,TEMPERATURE,BELOW,7,Low Temp,,0,0
