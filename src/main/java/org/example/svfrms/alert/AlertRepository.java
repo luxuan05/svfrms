@@ -1,5 +1,5 @@
 package org.example.svfrms.alert;
-
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -17,27 +17,54 @@ import java.util.List;
  *  - Return copies / snapshots, never the internal lists.
  *  - "Active alerts" count = number of active (unarchived) alerts, as legacy totalAlerts.
  */
+
 public final class AlertRepository implements AlertListener {
+
+    // The ONE lock that guards all internal state.
+    private final Object lock = new Object();
+    
+    private final List<Alert> activeAlerts = new ArrayList<>();
+    private final List<Alert> archivedAlerts = new ArrayList<>();
+    private int totalAlertsGenerated = 0;
 
     @Override
     public void onAlert(Alert alert) {
-        throw new UnsupportedOperationException("TODO Person B: add to active list and increment generated count");
+        synchronized (lock) {
+            activeAlerts.add(alert);
+            totalAlertsGenerated++;
+        }
     }
 
-    /** Moves all active alerts to the archive atomically; returns how many were moved. */
+    /** 
+     * Moves all active alerts to the archive atomically; returns how many were moved. 
+     */
     public int archiveAll() {
-        throw new UnsupportedOperationException("TODO Person B");
+        synchronized (lock) {
+            int movedCount = activeAlerts.size();
+            if (movedCount > 0) {
+                archivedAlerts.addAll(activeAlerts);
+                activeAlerts.clear();
+            }
+            return movedCount;
+        }
     }
 
     public int generatedCount() {
-        throw new UnsupportedOperationException("TODO Person B");
+        synchronized (lock) {
+            return totalAlertsGenerated;
+        }
     }
 
     public int activeCount() {
-        throw new UnsupportedOperationException("TODO Person B");
+        synchronized (lock) {
+            return activeAlerts.size();
+        }
     }
 
+    /** Returns a snapshot (copy) of the archived alerts. */
     public List<Alert> archivedAlerts() {
-        throw new UnsupportedOperationException("TODO Person B: return a copy");
+        synchronized (lock) {
+            return new ArrayList<>(archivedAlerts);
+        }
     }
 }

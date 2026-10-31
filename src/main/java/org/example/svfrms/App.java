@@ -1,15 +1,31 @@
 package org.example.svfrms;
 
+import org.example.svfrms.alert.AlertRepository;
 import org.example.svfrms.config.ChamberAssignment;
 import org.example.svfrms.config.ChamberConfigLoader;
 import org.example.svfrms.config.ConfigReader;
 import org.example.svfrms.config.CropProfileLoader;
+import org.example.svfrms.control.ControlQueue;
+import org.example.svfrms.control.ControlRequest;
+import org.example.svfrms.control.ControlWorker;
 import org.example.svfrms.crop.CropProfile;
 import org.example.svfrms.crop.CropRegistry;
 import org.example.svfrms.crop.ThresholdRule;
+import org.example.svfrms.device.CoolingFan;
+import org.example.svfrms.device.DeviceRegistry;
+import org.example.svfrms.resource.ResourceUsageTracker;
+import org.example.svfrms.tracking.ChamberRegistry;
+import org.example.svfrms.tracking.ChamberTask;
+import org.example.svfrms.tracking.ChamberTracker;
+import org.example.svfrms.tracking.ConsoleEventLogger;
+import org.example.svfrms.tracking.SensorProcessor;
+// TODO (Person C): import org.example.svfrms.report.DailyReport;
 
 import java.io.BufferedReader;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Composition root: the only place that creates concrete classes and connects them.
@@ -20,6 +36,7 @@ public final class App {
     static final int CONTROL_QUEUE_CAPACITY = 5;   // legacy line 15
 
     public static void main(String[] args) throws Exception {
+        // 1. Load Configuration
         CropRegistry crops;
         try (BufferedReader in = ConfigReader.open("crops.csv")) {
             crops = new CropProfileLoader().load(in);
@@ -29,7 +46,7 @@ public final class App {
             chambers = new ChamberConfigLoader().load(in);
         }
 
-        // ---- Skeleton smoke test: proves config loading works. Remove once wiring is done. ----
+        // ---- Skeleton smoke test: proves config loading works. ----
         System.out.println("Crops loaded from " + ConfigReader.sourceOf("crops.csv"));
         for (String name : crops.cropNames()) {
             CropProfile profile = crops.find(name).orElseThrow();
@@ -46,24 +63,32 @@ public final class App {
             System.out.println("  " + c.chamberId() + " -> " + c.crop() + warning);
         }
 
-        /* ---- TODO (Person B + C): wiring, roughly in this order ----
-         *
-         * ConsoleEventLogger logger  = new ConsoleEventLogger(System.out);
-         * ChamberRegistry registry   = new ChamberRegistry();
-         * ChamberTracker tracker     = new ChamberTracker(registry);
-         * AlertRepository alerts     = new AlertRepository();
-         * ResourceUsageTracker usage = new ResourceUsageTracker();
-         * ControlQueue queue         = new ControlQueue(CONTROL_QUEUE_CAPACITY);
-         * DeviceRegistry devices     = new DeviceRegistry().register(new CoolingFan()); // + others
-         *
-         * // Listener order = legacy order: TRACK_ALERT, then CREATE_ALERT (store, print)
-         * SensorProcessor processor = new SensorProcessor(crops, registry,
-         *         List.of(tracker, alerts, new ConsoleAlertNotifier(logger)), usage, queue, logger);
-         *
-         * 1. Start one ControlWorker on its own executor.
-         * 2. Submit one ChamberTask per chamber to a fixed thread pool; shutdown() + awaitTermination().
-         * 3. queue.submit(ControlRequest.shutdown()); wait for the worker to finish.
-         * 4. Report + archive in ONE defined order (legacy race R5), then write archive/daily_report.txt.
-         */
-    }
-}
+        System.out.println("\n--- Starting Simulation ---");
+
+        // 2. Initialize Shared Concurrency Components (Person B)
+        ConsoleEventLogger logger = new ConsoleEventLogger(System.out);
+        ChamberRegistry registry = new ChamberRegistry();
+        ChamberTracker tracker = new ChamberTracker(registry);
+        AlertRepository alerts = new AlertRepository();
+        ResourceUsageTracker usage = new ResourceUsageTracker();
+        ControlQueue queue = new ControlQueue(CONTROL_QUEUE_CAPACITY);
+        
+        // Person A will add more devices here (WaterPump, NutrientInjector, etc.)
+        DeviceRegistry devices = new DeviceRegistry().register(new CoolingFan()); 
+
+        // Listener order = legacy order: TRACK_ALERT, then CREATE_ALERT (store, print)
+        // Note: Adjust constructor args based on Person A/C's actual SensorProcessor signature
+        SensorProcessor processor = new SensorProcessor(crops, registry,
+                List.of(tracker, alerts, new ConsoleAlertNotifier(logger)), usage, queue, logger);
+
+        // 3. Start Control Worker (Consumer) on its own thread
+        ControlWorker worker = new ControlWorker(queue, devices, logger);
+        Thread workerThread = new Thread(worker, "ControlWorker");
+        workerThread.start();
+
+        // 4. Submit Chamber Tasks (Producers) to a fixed thread pool
+        ExecutorService chamberExecutor = Executors.newFixedThreadPool(chambers.size());
+        
+        for (ChamberAssignment assignment : chambers) {
+            ChamberTask task = new ChamberTask(
+                    assignment.chamberId(),
