@@ -23,7 +23,7 @@ public final class CropProfileLoader {
     private static final int FIELDS = 8;
 
     public CropRegistry load(BufferedReader in) throws IOException {
-        Map<String, List<ThresholdRule>> rulesByCrop = new LinkedHashMap<>();
+        Map<String, CropProfile.Builder> cropsByName = new LinkedHashMap<>();
         List<ThresholdRule> facilityRules = new ArrayList<>();
 
         String line;
@@ -41,20 +41,18 @@ public final class CropProfileLoader {
             }
             try {
                 String crop = f[0].strip();
-                boolean facilityWide = crop.equals(FACILITY_WIDE);
-                ThresholdRule rule = new ThresholdRule(
-                        SensorType.valueOf(f[1].strip()),
-                        Bound.valueOf(f[2].strip()),
-                        Double.parseDouble(f[3].strip()),
-                        f[4].strip(),
-                        f[5].isBlank() ? null : f[5].strip(),
-                        Integer.parseInt(f[6].strip()),
-                        Integer.parseInt(f[7].strip()),
-                        facilityWide);
-                if (facilityWide) {
-                    facilityRules.add(rule);
+                ThresholdRule.Builder rule = ThresholdRule.builder(SensorType.valueOf(f[1].strip()))
+                        .bound(Bound.valueOf(f[2].strip()), Double.parseDouble(f[3].strip()))
+                        .label(f[4].strip())
+                        .waterCost(Integer.parseInt(f[6].strip()))
+                        .energyCost(Integer.parseInt(f[7].strip()));
+                if (!f[5].isBlank()) {
+                    rule.device(f[5].strip());
+                }
+                if (crop.equals(FACILITY_WIDE)) {
+                    facilityRules.add(rule.facilityWide().build());
                 } else {
-                    rulesByCrop.computeIfAbsent(crop, k -> new ArrayList<>()).add(rule);
+                    cropsByName.computeIfAbsent(crop, CropProfile::builder).rule(rule);
                 }
             } catch (IllegalArgumentException e) {
                 throw new IllegalArgumentException("crops.csv line " + lineNo + ": " + e.getMessage(), e);
@@ -62,7 +60,7 @@ public final class CropProfileLoader {
         }
 
         CropRegistry registry = new CropRegistry(facilityRules);
-        rulesByCrop.forEach((name, rules) -> registry.register(new CropProfile(name, rules)));
+        cropsByName.values().forEach(builder -> registry.register(builder.build()));
         return registry;
     }
 }

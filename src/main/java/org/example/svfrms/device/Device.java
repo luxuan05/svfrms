@@ -4,8 +4,8 @@ import org.example.svfrms.domain.ChamberState;
 
 /**
  * Strategy: one implementation per automated device, replacing the if/else chain in
- * legacy activateControl (lines 90-129). A new device (e.g. Heating Unit) is a new class
- * registered in DeviceRegistry - no existing code changes.
+ * legacy activateControl (lines 93-128). A new device (e.g. Heating Unit) is a new class
+ * registered in {@link DeviceFactory} - no existing device code changes.
  */
 public interface Device {
 

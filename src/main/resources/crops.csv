@@ -34,5 +34,8 @@ Cucumber,TEMPERATURE,BELOW,18,Low Temp,,0,0
 
 # New crop example for the demo: uncomment, then assign it a chamber in chambers.csv.
 # No Java code changes are needed.
-# Kale,TEMPERATURE,ABOVE,24,High Temp,Cooling Fan,0,0
-# Kale,TEMPERATURE,BELOW,7,Low Temp,,0,0
+# Kale,TEMPERATURE,ABOVE,24,High Temp,Cooling Fan,0,10
+# Kale,TEMPERATURE,BELOW,7,Low Temp,,0,15
+# Kale,HUMIDITY,ABOVE,80,High Humidity,Dehumidifier,0,0
+# Kale,HUMIDITY,BELOW,60,Low Humidity,Humidifier,20,0
+# Kale,SOIL_MOISTURE,BELOW,50,Low Soil Moisture,Water Pump,50,0
