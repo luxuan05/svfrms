@@ -54,7 +54,7 @@ public final class App {
          * AlertRepository alerts     = new AlertRepository();
          * ResourceUsageTracker usage = new ResourceUsageTracker();
          * ControlQueue queue         = new ControlQueue(CONTROL_QUEUE_CAPACITY);
-         * DeviceRegistry devices     = new DeviceRegistry().register(new CoolingFan()); // + others
+         * DeviceFactory devices      = DeviceFactory.withStandardDevices();   // all six legacy devices
          *
          * // Listener order = legacy order: TRACK_ALERT, then CREATE_ALERT (store, print)
          * SensorProcessor processor = new SensorProcessor(crops, registry,

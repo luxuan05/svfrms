@@ -1,7 +1,7 @@
 package org.example.svfrms.control;
 
 import org.example.svfrms.device.Device;
-import org.example.svfrms.device.DeviceRegistry;
+import org.example.svfrms.device.DeviceFactory;
 import org.example.svfrms.domain.ChamberRegistry;
 import org.example.svfrms.logging.EventLogger;
 import org.example.svfrms.tracking.ChamberTracker;
@@ -15,12 +15,12 @@ import java.util.Optional;
  */
 public final class ControlWorker implements Runnable {
     private final ControlQueue queue;
-    private final DeviceRegistry devices;
+    private final DeviceFactory devices;
     private final ChamberRegistry chambers;
     private final ChamberTracker tracker;
     private final EventLogger logger;
 
-    public ControlWorker(ControlQueue queue, DeviceRegistry devices, ChamberRegistry chambers,
+    public ControlWorker(ControlQueue queue, DeviceFactory devices, ChamberRegistry chambers,
                          ChamberTracker tracker, EventLogger logger) {
         this.queue = queue;
         this.devices = devices;
@@ -45,7 +45,7 @@ public final class ControlWorker implements Runnable {
     }
 
     private void execute(ControlRequest request) {
-        Optional<Device> device = devices.find(request.deviceName());
+        Optional<Device> device = devices.create(request.deviceName());
         if (device.isEmpty()) {
             return;   // legacy activateControl silently ignored unknown devices
         }

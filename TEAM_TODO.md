@@ -12,11 +12,28 @@ It prints every loaded crop rule. Check them against legacy `processSensor` (lin
   `CoolingFan` (example device), `RandomSensorSource` (seedable).
 
 ## Person A - crops & devices (OCP, Strategy, new-crop demo)
-- [ ] Add `WaterPump`, `NutrientInjector`, `Humidifier`, `Dehumidifier`, `GrowLight`
+- [x] Add `WaterPump`, `NutrientInjector`, `Humidifier`, `Dehumidifier`, `GrowLight`
       following `CoolingFan` (legacy lines 99-128; copy the exact messages).
-- [ ] Verify every line of `crops.csv` against legacy lines 141-205.
-- [ ] Demo: uncomment Kale in `crops.csv`, add `CH5,Kale` to `chambers.csv`, rerun. No Java edits.
-- [ ] Unit tests for `CropProfileLoader` (good file, bad line number in error message).
+- [x] Verify every line of `crops.csv` against legacy lines 141-205
+      (`BundledCropsTest` checks each rule, including boundary values).
+- [x] Demo: uncomment Kale in `crops.csv`, add `CH5,Kale` to `chambers.csv`, rerun. No Java edits.
+- [x] Unit tests for `CropProfileLoader` (good file, bad line number in error message).
+- [x] Lecture-based patterns in this area (Wk2): Factory Method (`DeviceFactory`, replaces `DeviceRegistry`),
+      Builder (`ThresholdRule.builder`, `CropProfile.builder`), Strategy (`Device`).
+- [x] `CropRegistry` uses a `ReentrantReadWriteLock` (Wk10): many chamber threads read rules, crops change rarely.
+
+**Person B/C, two small API changes from this:**
+- `DeviceRegistry` is now `DeviceFactory`. Wire it with `DeviceFactory.withStandardDevices()`;
+  `ControlWorker` already uses `devices.create(name)` (3-line change, same behaviour).
+- Rules can be built in code: `ThresholdRule.builder(TEMPERATURE).above(28).label("High Temp").device("Cooling Fan")`.
+
+### New-crop demo script (~1 min)
+`ConfigReader` reads CSVs from the working directory first, so no rebuild is needed:
+1. Put `run.jar` in an empty folder and run it: shows the bundled crops and CH1-CH4.
+2. Copy `crops.csv` and `chambers.csv` from `src/main/resources` into that folder.
+3. Add: uncomment the Kale lines in `crops.csv`; append `CH5,Kale` to `chambers.csv`.
+4. Remove: comment out the `Lettuce` lines and `CH3,Lettuce`.
+5. Rerun `java -jar run.jar`: Kale on CH5 with 5 rules, Lettuce gone. Zero Java changes (OCP).
 
 ## Person B - concurrency
 - [ ] `ControlQueue` -> `ArrayBlockingQueue`.
